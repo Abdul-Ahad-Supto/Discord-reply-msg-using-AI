@@ -9,7 +9,10 @@ header = {
     'authorization': 'Give_your_discord_authorization_key'  # Replace with your Discord authorization token
 }
 
-def send_message(content, message_reference=None):
+replied_message_ids = set()
+
+
+def send_message(content, channel_id, message_reference=None):
     payload = {
         'content': content
     }
@@ -20,7 +23,8 @@ def send_message(content, message_reference=None):
             'channel_id': message_reference['channel_id']
         }
 
-    requests.post('Give discord header channel link', json=payload, headers=header)
+    requests.post(f'Give discord header channel link', json=payload, headers=header)
+
 
 def fetch_messages():
     response = requests.get('Give discord header channel link', headers=header)
@@ -29,31 +33,35 @@ def fetch_messages():
 
 def generate_reply(message_content):
     reply = openai.Completion.create(
-        engine="text-davinci-003",  # Replace with the appropriate engine name
+        engine="text-davinci-003",
         prompt=message_content,
-        max_tokens=30,  # Limit the reply to 30 tokens (words)(you can increase it)
+        max_tokens=50,  # Limit the reply to 50 tokens (words)
         n=1,
         temperature=0.7
     )
     reply_text = reply.choices[0].text.strip()
     return reply_text
 
+
 while True:
     messages = fetch_messages()
 
     if len(messages) > 0:
-        for message in messages:
-            message_content = message['content']
-            author_id = message['author']['id']
-            message_id = message['id']
-            channel_id = message['channel_id']
+        latest_message = messages[0]  # Get the latest message from the list
 
-            if author_id != 'Give discord user ID(not name)':  # Replace with your Discord user ID
-                reply_text = generate_reply(message_content)
-                reply_content = f"{reply_text}"
-                send_message(reply_content, {'message_id': message_id, 'channel_id': channel_id})
+        message_content = latest_message['content']
+        author_id = latest_message['author']['id']
+        message_id = latest_message['id']
+        channel_id = latest_message['channel_id']
+
+        if author_id != 'Give discord user ID(not name)' and message_id not in replied_message_ids:
+            reply_text = generate_reply(message_content)
+            reply_content = f"{reply_text}"
+            send_message(reply_content, channel_id, {'message_id': message_id, 'channel_id': channel_id})
+
+            replied_message_ids.add(message_id)
 
     # Generate a random time interval between 1 to 2 minutes
-    interval = random.randint(60, 120)
-    time.sleep(interval)
-    #if you dont want timer then cut the two lines above
+    # interval = random.randint(60, 120)
+    # time.sleep(interval)
+    #if you  want timer then activate the two lines above by cutting the hash
